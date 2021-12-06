@@ -25,6 +25,7 @@ class ViewController: UIViewController {
     var duration = 60
     var timer: DispatchSourceTimer?
     var timerState: TimerState = .end
+    var currentSecond = 0
     
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -37,18 +38,22 @@ class ViewController: UIViewController {
         
         switch self.timerState {
         case .end:
+            self.currentSecond = self.duration
             self.datePicker.isHidden = true
             self.outletHidden(isHidden: false)
             self.cancleBtn.isEnabled = true
             self.toggleBtn.isSelected = true
             self.timerState = .start
+            self.startTimer()
         case .start:
+            
             self.toggleBtn.isSelected = false
             self.timerState = .pause
-            
+            self.timer?.suspend()
         case .pause:
             self.toggleBtn.isSelected = true
             self.timerState = .start
+            self.timer?.resume()
         default:
             break
         }
@@ -58,11 +63,8 @@ class ViewController: UIViewController {
         
         switch self.timerState {
         case .start, .pause:
-            self.datePicker.isHidden = false
-            self.outletHidden(isHidden: true)
-            self.cancleBtn.isEnabled = false
-            self.toggleBtn.isSelected = false
-            self.timerState = .end
+            stopTimer()
+           
         default:
             break
         }
@@ -79,5 +81,34 @@ class ViewController: UIViewController {
         self.toggleBtn.setTitle("시작", for: .normal)
     }
     
+    
+    func startTimer() {
+        if self.timer == nil{
+            self.timer = DispatchSource.makeTimerSource(flags: [], queue: .main)
+            self.timer?.schedule(wallDeadline: .now(), repeating: 1)
+            self.timer?.setEventHandler(handler: {[weak self] in
+                self?.currentSecond -= 1
+                if self?.currentSecond ?? 0 <= 0 {
+                    self?.stopTimer()
+                }
+            })
+        }
+        self.timer?.resume()
+    }
+    
+    
+    func stopTimer() {
+        if self.timerState == .pause {
+            self.timer?.resume()
+        }
+        self.timer?.cancel()
+        self.timer = nil
+        
+        self.datePicker.isHidden = false
+        self.outletHidden(isHidden: true)
+        self.cancleBtn.isEnabled = false
+        self.toggleBtn.isSelected = false
+        self.timerState = .end
+    }
 }
 
