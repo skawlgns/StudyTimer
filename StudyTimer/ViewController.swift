@@ -6,6 +6,7 @@
 //
 
 import UIKit
+import AudioToolbox
 
 enum TimerState{
     case start
@@ -15,7 +16,7 @@ enum TimerState{
 
 
 class ViewController: UIViewController {
-
+    
     @IBOutlet weak var timeLabel: UILabel!
     @IBOutlet weak var progressView: UIProgressView!
     @IBOutlet weak var datePicker: UIDatePicker!
@@ -27,14 +28,14 @@ class ViewController: UIViewController {
     var timerState: TimerState = .end
     var currentSecond = 0
     
+    
     override func viewDidLoad() {
         super.viewDidLoad()
         self.configureToggleBtn()
     }
-
+    
     @IBAction func tapToggleBtn(_ sender: UIButton) {
         self.duration = Int(self.datePicker.countDownDuration)
-       
         
         switch self.timerState {
         case .end:
@@ -64,7 +65,7 @@ class ViewController: UIViewController {
         switch self.timerState {
         case .start, .pause:
             stopTimer()
-           
+            
         default:
             break
         }
@@ -86,10 +87,19 @@ class ViewController: UIViewController {
         if self.timer == nil{
             self.timer = DispatchSource.makeTimerSource(flags: [], queue: .main)
             self.timer?.schedule(wallDeadline: .now(), repeating: 1)
-            self.timer?.setEventHandler(handler: {[weak self] in
-                self?.currentSecond -= 1
-                if self?.currentSecond ?? 0 <= 0 {
-                    self?.stopTimer()
+            self.timer?.setEventHandler(handler: { [weak self] in
+                guard let self = self else {return}
+                self.currentSecond -= 1
+                
+                var hour = self.currentSecond / 3600
+                var minute = (self.currentSecond % 3600) / 60
+                var second = (self.currentSecond % 3600) % 60
+                self.timeLabel.text = String(format: "%02d:%02d:%02d", hour,minute,second)
+                self.progressView.progress = Float(self.currentSecond) / Float(self.duration)
+                
+                if self.currentSecond <= 0 {
+                    self.stopTimer()
+                    AudioServicesPlaySystemSound(1009)
                 }
             })
         }
@@ -110,5 +120,6 @@ class ViewController: UIViewController {
         self.toggleBtn.isSelected = false
         self.timerState = .end
     }
+    
 }
 
